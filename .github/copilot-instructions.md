@@ -1,0 +1,1 @@
+Whenever I suggest a change, update the SPEC.md and TECH_SPEC.md files at the root of the project

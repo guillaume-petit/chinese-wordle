@@ -1,0 +1,38 @@
+CHINESE WORDLE — DICTIONARY ATTRIBUTION
+
+This app ships a modified CC-CEDICT dictionary, maintained by the CC-CEDICT
+community and published by MDBG. CC-CEDICT continues CEDICT, started by
+Paul Andrew Denisowski in 1997.
+
+Publisher: https://www.mdbg.net/chinese/dictionary?page=cedict
+Project: https://cc-cedict.org/wiki/
+Downloaded source: https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz
+Source release: 2026-10-11T08:29:27Z
+Compressed source SHA-256: cf0bf5c8ff94316799bc82755dbe0627658d7167244060d8e4ce8d5928a6b9f5
+Derived dictionary entries: 61180
+Source entries: 125262
+Supported source entries: 62103
+Skipped forms: 63075
+Skipped readings: 84
+Merged source entries: 923
+Form collisions: 9
+
+CC-CEDICT and this derived dictionary
+are provided under Creative Commons Attribution-ShareAlike 4.0 International:
+https://creativecommons.org/licenses/by-sa/4.0/
+Full legal text is bundled alongside this notice as CC-BY-SA-4.0.txt.
+Original legal text: https://creativecommons.org/licenses/by-sa/4.0/legalcode.txt
+
+Changes: two supported Han character filtering; two-syllable reading filtering; pinyin and tone normalization; simplified-form merging; deterministic form collision resolution; optional frequency overlay.
+No local dictionary overrides are included. All entries, readings, and glosses
+come from the source; canonical IDs depend only on simplified-form code points.
+
+No frequency overlay is included. Unknown frequency is null; curated game ordering is not a corpus rank.
+
+The dictionary data license is separate from the application source code
+license; CC BY-SA does not relicense the application code. An optional
+frequency source retains its own stated license and attribution; the
+combined derived dictionary remains CC BY-SA 4.0. Only add compatible overlays.
+
+No endorsement by MDBG, CC-CEDICT contributors, or Creative Commons is implied.
+The data is supplied without warranties. See the full license for conditions.

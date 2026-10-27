@@ -1,0 +1,37 @@
+{
+  "name": "ciyu-daily",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "predev": "npm run content:curated",
+    "dev": "vite",
+    "prebuild": "npm run content:curated",
+    "build": "tsc -b && vite build",
+    "pretypecheck": "npm run content:curated",
+    "typecheck": "tsc -b --pretty",
+    "pretest": "npm run content:curated",
+    "test": "vitest run",
+    "content:build": "node tools\\build-dictionary.mjs",
+    "content:curated": "node tools\\build-curated.mjs",
+    "content:tocfl": "node tools\\import-tocfl.mjs",
+    "test:importer": "node --test tools\\build-dictionary.test.mjs tools\\build-curated.test.mjs tools\\import-tocfl.test.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.7",
+    "typescript": "~5.7.2",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "jsdom": "^25.0.1",
+    "vitest": "^2.1.8",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}
