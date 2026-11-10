@@ -1,4 +1,4 @@
-import type { Game, HintType, PinyinPartFeedback, Reading, Script, TileState } from './types'
+import type { DailySchedule, Game, HintType, PinyinPartFeedback, Reading, Script, TileState, Word } from './types'
 import { wordByForm } from './dictionary'
 export { normalizePinyin, suggestions } from './pinyin'
 
@@ -114,4 +114,36 @@ export function shareText(game: Game, highContrast: boolean, url = window.locati
   const rows = game.guesses.map((guess) => guess.tiles.map((tile) => squares[tile]).join(''))
   const label = game.mode === 'daily' ? `词语 Daily ${formatChineseDate(game.date)}` : '词语 Daily Practice'
   return [`${label} ${result}${isAssisted(game) ? ' 💡' : ''}`, ...rows, url].join('\n')
+}
+
+const dayNumber = (date: string) => Math.round(Date.parse(`${date}T00:00:00Z`) / 86_400_000)
+
+function fnv1a(text: string): number {
+  let hash = 0x811c9dc5
+  for (const char of text) hash = Math.imul(hash ^ char.codePointAt(0)!, 0x01000193) >>> 0
+  return hash
+}
+
+/**
+ * Today's answer comes from the published schedule, so approving new words never changes a
+ * scheduled day. Dates outside the schedule fall back to a date hash over the current pool,
+ * which is deterministic but changes when the pool changes; extend the schedule to avoid it.
+ */
+export function dailyAnswerId(date: string, schedule: DailySchedule, pool: readonly Word[]): string | null {
+  if (schedule.start) {
+    const id = schedule.answerIds[dayNumber(date) - dayNumber(schedule.start)]
+    if (id && pool.some((word) => word.id === id)) return id
+  }
+  return pool.length ? pool[fnv1a(date) % pool.length].id : null
+}
+
+/** Answers for `date` and the following `days - 1` days. */
+export function upcomingAnswerIds(date: string, days: number, schedule: DailySchedule, pool: readonly Word[]): Set<string> {
+  const ids = new Set<string>()
+  const start = dayNumber(date)
+  for (let offset = 0; offset < days; offset++) {
+    const id = dailyAnswerId(new Date((start + offset) * 86_400_000).toISOString().slice(0, 10), schedule, pool)
+    if (id) ids.add(id)
+  }
+  return ids
 }

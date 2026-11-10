@@ -199,7 +199,7 @@ Exclude obscure words, proper nouns, and entries with unclear intended readings 
 - Single-character entries are excluded from the curated answer list. The current game remains two-character only in both scripts. Three- and four-character TOCFL entries are outside the current playable pool; including them would require a separately agreed word-length feature. Do not truncate longer entries or treat their fragments as TOCFL-listed words.
 - Every eligible answer still requires reviewed script mappings, an intended reading, learning content, and hints. TOCFL membership alone does not make an entry eligible.
 - Import all TOCFL entries with exactly two supported Han characters in both simplified and traditional forms as curation candidates, retaining their source levels. Candidates are not automatically published answers. Flag ambiguous intended readings/senses, conflicting written-form mappings, proper names, variant-only references, and duplicates for review; do not automatically reject ordinary polyphonic words or unfamiliar higher-level vocabulary. Match by explicit written forms, not unrestricted script conversion. Exclude entries that cannot support two aligned characters and syllables or cannot be safely resolved after review. Missing hints/examples block answer publication, not candidate import.
-- This progression is a planned content/scheduling change. The MVP starter records have been removed; puzzles require approved spreadsheet content.
+- This progression is a planned content/scheduling change; the schedule generator does not yet constrain levels by weekday. The MVP starter records have been removed; puzzles require approved spreadsheet content.
 
 ### 6.2.2 Spreadsheet curation
 
@@ -319,7 +319,9 @@ Ad-free purchases are deferred until monetization is validated.
 
 - Bundle vocabulary and a versioned daily schedule for offline play.
 - Once started, a puzzle retains its answer and content version through completion.
-- If no scheduled puzzle is available for the current date, show "Today's puzzle needs an internet connection" and keep offline practice available.
+- The daily schedule is a fixed, append-only list of dates and answers (`content/daily-schedule.csv`). Approving, adding, or reordering curated words never changes the answer of an already scheduled date, so every player on any app version gets the same word for the same date. Only future dates whose word is no longer approved are replaced; published dates are never rewritten automatically.
+- New schedule dates use every approved word once, in a seeded pseudo-random order independent of spreadsheet order, before repeating the least recently scheduled word. Newly approved words are scheduled before any repeat.
+- Until server-hosted content updates exist, a date beyond the bundled schedule falls back to a deterministic word derived from the date and the bundled approved pool, rather than blocking play. This fallback is not stable across content releases, so the schedule must be extended well ahead of its end before publishing (the build warns when fewer than 60 days remain). Once server updates exist, a missing date should show "Today's puzzle needs an internet connection" and keep offline practice available.
 - Cache app updates without replacing an active puzzle mid-session.
 - Offline audio is available only when downloaded or cached.
 - Local dates and results are not tamper-proof; competitive rankings are therefore excluded.

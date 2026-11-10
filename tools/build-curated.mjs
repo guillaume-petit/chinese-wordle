@@ -3,6 +3,7 @@ import { readFile, mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseReading, toneMark } from './build-dictionary.mjs'
+import { parseSchedule, shanghaiToday } from './build-schedule.mjs'
 
 export const CURATED_COLUMNS = [
   'id', 'simplified', 'traditional', 'tocflLevel', 'sourceReference', 'reviewStatus',
@@ -176,7 +177,7 @@ function buildWord(row, primary, alternatives) {
   return word
 }
 
-export function buildCurated(csvText, { dictionary }) {
+export function buildCurated(csvText, { dictionary, schedule = '' }) {
   if (!dictionary || !Array.isArray(dictionary.entries)) throw new Error('Dictionary must contain an entries array')
   const records = parseCsv(csvText)
   const errors = []
@@ -279,10 +280,17 @@ export function buildCurated(csvText, { dictionary }) {
 
   const words = [...approved.values()]
   const answerIds = [...approved.keys()]
+  const scheduleEntries = parseSchedule(schedule)
+  const unapproved = scheduleEntries.filter((entry) => !approved.has(entry.id))
+  if (unapproved.length) {
+    throw new Error(unapproved.map((entry) => `Schedule row ${entry.line} (${entry.date}): ${entry.id} is not an approved word; run npm run content:schedule to replace future dates, or fix published dates by hand`).join('\n'))
+  }
+  if (statuses.approved && !scheduleEntries.length) warnings.push('No daily schedule; daily answers use the unstable fallback rotation. Run npm run content:schedule.')
   return {
     artifact: {
       words,
       answerIds,
+      schedule: { start: scheduleEntries[0]?.date ?? null, answerIds: scheduleEntries.map((entry) => entry.id) },
       metadata: {
         approved: statuses.approved,
         candidate: statuses.candidate,
@@ -313,23 +321,33 @@ export async function main(args = process.argv.slice(2)) {
   const options = {}
   for (let index = 0; index < args.length; index += 2) {
     const key = args[index]
-    if (!['--source', '--output'].includes(key) || !args[index + 1] || args[index + 1].startsWith('--') || options[key]) {
-      throw new Error('Usage: node tools\\build-curated.mjs [--source content\\curated-words.csv] [--output src\\generated\\curated.json]')
+    if (!['--source', '--output', '--schedule'].includes(key) || !args[index + 1] || args[index + 1].startsWith('--') || options[key]) {
+      throw new Error('Usage: node tools\\build-curated.mjs [--source content\\curated-words.csv] [--output src\\generated\\curated.json] [--schedule content\\daily-schedule.csv]')
     }
     options[key] = args[index + 1]
   }
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
   const source = resolve(options['--source'] ?? resolve(root, 'content', 'curated-words.csv'))
   const output = resolve(options['--output'] ?? resolve(root, 'src', 'generated', 'curated.json'))
-  const [csv, dictionaryText] = await Promise.all([
+  const schedulePath = resolve(options['--schedule'] ?? resolve(root, 'content', 'daily-schedule.csv'))
+  const [csv, dictionaryText, schedule] = await Promise.all([
     readFile(source, 'utf8'),
     readFile(resolve(root, 'src', 'generated', 'dictionary.json'), 'utf8'),
+    readFile(schedulePath, 'utf8').catch((error) => {
+      if (error.code === 'ENOENT') return ''
+      throw error
+    }),
   ])
   const result = buildCurated(csv, {
     dictionary: JSON.parse(dictionaryText),
+    schedule,
   })
   await atomicWrite(output, `${JSON.stringify(result.artifact)}\n`)
-  console.log(JSON.stringify({ output, ...result.counts, answerIds: result.artifact.answerIds.length, warnings: result.warnings }, null, 2))
+  const { start, answerIds: scheduled } = result.artifact.schedule
+  const scheduleEnd = start ? new Date(Date.parse(`${start}T00:00:00Z`) + (scheduled.length - 1) * 86_400_000).toISOString().slice(0, 10) : null
+  const daysLeft = scheduleEnd ? Math.round((Date.parse(`${scheduleEnd}T00:00:00Z`) - Date.parse(`${shanghaiToday()}T00:00:00Z`)) / 86_400_000) : null
+  const notices = daysLeft !== null && daysLeft < 60 ? [`Daily schedule ends ${scheduleEnd} (${Math.max(daysLeft, 0)} days left); run npm run content:schedule before publishing.`] : []
+  console.log(JSON.stringify({ output, ...result.counts, answerIds: result.artifact.answerIds.length, scheduleStart: start, scheduleEnd, warnings: [...result.warnings, ...notices] }, null, 2))
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

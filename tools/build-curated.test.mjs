@@ -180,6 +180,19 @@ test('fresh generations are deterministic and removed, candidate or excluded row
   assert.equal(updated.words[0].definition, 'a person you know well')
 })
 
+test('daily schedule is emitted by date and must reference approved words only', () => {
+  const rows = csv([approvedRow(), weatherRow(), happyRow({ reviewStatus: 'candidate' })])
+  const schedule = `date,id\r\n2026-11-10,${weatherId}\r\n2026-11-11,${friendId}\r\n`
+  const { artifact, warnings } = buildCurated(rows, { dictionary, schedule })
+  assert.deepEqual(artifact.schedule, { start: '2026-11-10', answerIds: [weatherId, friendId] })
+  assert.ok(!warnings.some((warning) => /No daily schedule/.test(warning)))
+  assert.deepEqual(buildCurated(rows, { dictionary }).artifact.schedule, { start: null, answerIds: [] })
+  assert.ok(buildCurated(rows, { dictionary }).warnings.some((warning) => /No daily schedule/.test(warning)))
+  assert.throws(() => buildCurated(rows, { dictionary, schedule: `${schedule}2026-11-12,${happyId}\r\n` }),
+    /Schedule row 4 \(2026-11-12\): cedict_5feb_4e50 is not an approved word/)
+  assert.throws(() => buildCurated(rows, { dictionary, schedule: `date,id\n2026-11-10,${friendId}\n2026-11-12,${friendId}` }), /must directly follow/)
+})
+
 test('CLI ignores old output, regenerates deterministically and leaves output untouched on invalid input', async () => {
   const directory = resolve('tools', `.curated-test-${randomUUID()}`)
   const source = resolve(directory, 'input.csv')
@@ -188,16 +201,17 @@ test('CLI ignores old output, regenerates deterministically and leaves output un
   try {
     await writeFile(source, csv([]))
     await writeFile(output, 'obsolete non-JSON output')
-    await main(['--source', source, '--output', output])
+    const schedule = resolve(directory, 'missing-schedule.csv')
+    await main(['--source', source, '--output', output, '--schedule', schedule])
     const generated = await readFile(output, 'utf8')
     assert.deepEqual(JSON.parse(generated).words, [])
     await rm(output)
-    await main(['--source', source, '--output', output])
+    await main(['--source', source, '--output', output, '--schedule', schedule])
     assert.equal(await readFile(output, 'utf8'), generated)
     for (const invalid of [`${columns.join(',')}\n"bad`, csv([approvedRow({ tocflLevel: '' })]),
       csv([approvedRow({ reviewStatus: 'excluded', exclusionReason: '' })])]) {
       await writeFile(source, invalid)
-      await assert.rejects(main(['--source', source, '--output', output]), /CSV row 2/)
+      await assert.rejects(main(['--source', source, '--output', output, '--schedule', schedule]), /CSV row 2/)
       assert.equal(await readFile(output, 'utf8'), generated)
     }
     assert.deepEqual((await readdir(directory)).sort(), ['input.csv', 'output.json'])

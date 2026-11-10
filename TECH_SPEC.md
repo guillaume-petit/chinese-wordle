@@ -456,7 +456,9 @@ Validation that needs the dictionary (whether the guess is a real word) happens 
 ### 6.3 Daily puzzle selection
 
 - **Puzzle date** = the calendar date in `Asia/Shanghai`. China uses UTC+8 with no daylight saving, but use `Intl.DateTimeFormat` with `timeZone: "Asia/Shanghai"` anyway so the intent is explicit.
-- Look up the date in the schedule. If it is missing, try to fetch the latest manifest; if that fails, show the "needs an internet connection" state.
+- `content/daily-schedule.csv` (`date,id`, consecutive dates with no gaps) is the committed source of truth. `npm run content:schedule` (`tools/build-schedule.mjs`, options `--days`, default 365, `--today`, `--seed`) extends it to cover today + N days in Asia/Shanghai. It never modifies entries dated today or earlier and fails if one of those references an unapproved word; future entries whose word is no longer approved are replaced. New entries pick never-scheduled approved words first, ordered by `sha256(seed:id)` so the order does not depend on CSV order, then the least recently scheduled word.
+- `npm run content:curated` validates the schedule (date format, contiguity, every ID approved) and emits `schedule: { start, answerIds }` in `src/generated/curated.json`; it warns when the schedule is missing or ends within 60 days.
+- `dailyAnswerId(date, schedule, pool)` in `src/game.ts` returns `schedule.answerIds[date - start]` when present and approved. Otherwise it falls back to `pool[fnv1a(date) % pool.length]`, which is deterministic for a given content release but not across releases. With server content updates (not implemented), a missing date should instead try the latest manifest and then show the "needs an internet connection" state.
 - On start, the `GameState` records `answerId` and `contentVersion`. Later content updates never change an existing game.
 - On app start and on `visibilitychange`, compare the current puzzle date with the active game's date and dispatch `EXPIRE` if it has passed. Schedule a timer for the next midnight while the app is open.
 
@@ -464,7 +466,7 @@ Validation that needs the dictionary (whether the guess is a real word) happens 
 
 ### 6.4 Practice selection
 
-- **General practice:** pick a random answer-pool word, excluding today's daily answer, scheduled future answers within the next 30 days, and the last 50 practice words.
+- **General practice:** pick a random answer-pool word, excluding today's daily answer, scheduled future answers within the next 30 days, and the last 50 practice words. If the 30-day exclusion leaves no word (small pools), only today's answer is excluded.
 - **Saved-word review:** pick randomly from saved words, preferring those not reviewed recently.
 - Practice `puzzleId` = `p_<uuid>`.
 
