@@ -61,7 +61,7 @@ After saving:
 npm run content:curated
 ```
 
-Errors identify the offending row/field; fix the CSV and rerun. No network or CC-CEDICT download is needed. `npm run dev` and `npm run build` regenerate curated data automatically. Never edit `src\generated\curated.json` by hand: it is rebuilt solely from currently approved rows, with no archive or compatibility retention. Removed rows are removed from generated learning content too.
+Errors identify the offending row/field; fix the CSV and rerun. No network or CC-CEDICT download is needed. `npm run dev` and `npm run build` regenerate curated data automatically. The app does not bundle `src\generated\curated.json` into its JavaScript: it fetches it as a separate cached asset at startup, together with the dictionary. Never edit `src\generated\curated.json` by hand: it is rebuilt solely from currently approved rows, with no archive or compatibility retention. Removed rows are removed from generated learning content too.
 
 An empty or candidate-only spreadsheet builds successfully but displays **No approved words yet** instead of starting a puzzle. Old MVP saves are not migrated into the new vocabulary.
 

@@ -22,3 +22,5 @@ export const wordById = new Map(words.map((word) => [word.id, word]))
 export const answerPool = [...words]
 // Today's answer is fixed so tests that guess 朋友 never win by accident on some dates.
 export const schedule: DailySchedule = { start: shanghaiDate(), answerIds: [wordByForm.get('喜欢')!] }
+export const isCuratedReady = () => true
+export const loadCurated = () => Promise.resolve()
