@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
 import { answerPool, schedule, wordById } from './data'
-import { dictionary, dictionaryById } from './dictionary'
+import { dictionary, dictionaryById, isDictionaryReady, loadDictionary } from './dictionary'
 import { preparePinyinIndex } from './pinyin'
 import {
   addHint, dailyAnswerId as scheduledAnswerId, displayForm, formatChineseDate, isAssisted, isHintAvailable, makeDailyGame, makePracticeGame, nextShanghaiMidnight,
@@ -33,7 +33,32 @@ function App() {
       <p>Edit <code>content\curated-words.csv</code>, approve reviewed words, then run <code>npm run content:curated</code>.</p>
     </main>
   }
-  return <PuzzleApp />
+  return <DictionaryGate />
+}
+
+/** Puzzle state and saved games need the dictionary, which loads as a separate cached asset. */
+function DictionaryGate() {
+  const [state, setState] = useState<'loading' | 'ready' | 'failed'>(() => isDictionaryReady() ? 'ready' : 'loading')
+  useEffect(() => {
+    if (state !== 'loading') return
+    let active = true
+    loadDictionary()
+      .then(() => { if (active) setState('ready') })
+      .catch(() => { if (active) setState('failed') })
+    return () => { active = false }
+  }, [state])
+  if (state === 'ready') return <PuzzleApp />
+  if (state === 'failed') {
+    return <main className="page-panel" role="alert">
+      <h1>Couldn't load the dictionary</h1>
+      <p>Check your connection, then try again. Once loaded, it stays available offline.</p>
+      <button className="primary-button" onClick={() => setState('loading')}>Try again</button>
+    </main>
+  }
+  return <main className="page-panel" role="status" aria-live="polite">
+    <h1>词语 Daily</h1>
+    <p>Loading dictionary…</p>
+  </main>
 }
 
 function PuzzleApp() {

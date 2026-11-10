@@ -1,4 +1,4 @@
-import { dictionary } from './dictionary'
+import { syllablePrefixes, syllables } from './dictionary'
 import type { DictionaryEntry, Reading, Script } from './types'
 
 const toneMarks: Record<string, string[]> = {
@@ -8,11 +8,6 @@ const toneMarks: Record<string, string[]> = {
 const markedVowels = new Map<string, { base: string; tone: number }>()
 for (const [base, marks] of Object.entries(toneMarks)) {
   marks.forEach((mark, index) => markedVowels.set(mark, { base, tone: index + 1 }))
-}
-const syllables = new Set(dictionary.flatMap((entry) => entry.readings.flatMap((reading) => reading.syllables)))
-const syllablePrefixes = new Set<string>()
-for (const syllable of syllables) {
-  for (let length = 1; length <= syllable.length; length++) syllablePrefixes.add(syllable.slice(0, length))
 }
 
 export function normalizePinyin(input: string): string | null {
@@ -75,11 +70,12 @@ function segmentsOf(value: string): Segment[] | null {
 }
 
 interface IndexedReading { word: DictionaryEntry; reading: Reading; pinyin: string }
-const indexes = new WeakMap<DictionaryEntry[], Map<string, IndexedReading[]>>()
+// Keyed by array and size: the shared dictionary array is filled in place once it loads.
+const indexes = new WeakMap<DictionaryEntry[], { size: number; index: Map<string, IndexedReading[]> }>()
 
 export function preparePinyinIndex(entries: DictionaryEntry[]): Map<string, IndexedReading[]> {
   const existing = indexes.get(entries)
-  if (existing) return existing
+  if (existing?.size === entries.length) return existing.index
   const index = new Map<string, IndexedReading[]>()
   for (const word of entries) {
     for (const reading of word.readings) {
@@ -89,7 +85,7 @@ export function preparePinyinIndex(entries: DictionaryEntry[]): Map<string, Inde
       index.set(first, bucket)
     }
   }
-  indexes.set(entries, index)
+  indexes.set(entries, { size: entries.length, index })
   return index
 }
 

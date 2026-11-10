@@ -5,6 +5,8 @@ import { formatChineseDate, makeDailyGame, shanghaiDate, vocabularyLevelForDate 
 import { defaultSettings } from './storage'
 import { answerPool, wordById } from './data'
 import { resolveGuess } from './game'
+import { dictionary, installDictionary } from './dictionary'
+import runtime from './generated/dictionary.runtime.json?raw'
 
 vi.mock('./data', async () => import('./curated-test-fixtures'))
 
@@ -18,6 +20,26 @@ describe('daily puzzle flow', () => {
     const level = vocabularyLevelForDate(date)
     if (level) expect(screen.getByText(`Vocabulary level: ${level}`)).toBeInTheDocument()
     else expect(screen.queryByText(/Vocabulary level:/)).not.toBeInTheDocument()
+  })
+
+  it('waits for the dictionary asset and offers a retry when it fails to load', async () => {
+    const saved = [...dictionary]
+    installDictionary([])
+    const fetch = vi.fn()
+      .mockRejectedValueOnce(new TypeError('offline'))
+      .mockResolvedValueOnce(new Response(runtime, { headers: { 'Content-Type': 'application/json' } }))
+    vi.stubGlobal('fetch', fetch)
+    try {
+      render(<App />)
+      expect(screen.getByRole('status')).toHaveTextContent('Loading dictionary')
+      expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't load the dictionary")
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+      expect(await screen.findByRole('button', { name: 'Start playing' })).toBeInTheDocument()
+      expect(fetch).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.unstubAllGlobals()
+      installDictionary(saved)
+    }
   })
 
   it('shows an explicit empty-content state without using stale MVP saves', () => {

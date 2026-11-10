@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { answerPool, words } from './data'
-import { dictionary, dictionaryById, wordByForm } from './dictionary'
+import { dictionary, dictionaryById, installDictionary, isDictionaryReady, loadDictionary, wordByForm } from './dictionary'
+import full from './generated/dictionary.json?raw'
 import { resolveGuess } from './game'
 import { normalizePinyin, preparePinyinIndex, suggestions } from './pinyin'
 
@@ -98,5 +99,44 @@ describe('bundled accepted-guess dictionary', () => {
     }
     durations.sort((a, b) => a - b)
     expect(durations[Math.ceil(durations.length * 0.95) - 1]).toBeLessThan(100)
+  })
+})
+
+describe('runtime dictionary asset', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('decodes to exactly the importer output, minus the unused gloss lists', () => {
+    const entries = (JSON.parse(full) as { entries: Array<Record<string, unknown>> }).entries
+    expect(dictionary).toHaveLength(entries.length)
+    entries.forEach((entry, index) => {
+      const { glosses: _unused, ...runtime } = entry
+      expect(dictionary[index]).toEqual(runtime)
+    })
+  })
+
+  it('loads once, reports failures, and retries after an error', async () => {
+    const saved = [...dictionary]
+    installDictionary([])
+    try {
+      expect(isDictionaryReady()).toBe(false)
+      const fetch = vi.fn()
+        .mockResolvedValueOnce(new Response('', { status: 503 }))
+        .mockResolvedValueOnce(Response.json({ format: 1, rows: [['朋友', '', 'peng2 you5;peng2 you3', 'friend', '', 7]] }))
+      vi.stubGlobal('fetch', fetch)
+      await expect(loadDictionary()).rejects.toThrow('Dictionary request failed (503)')
+      expect(isDictionaryReady()).toBe(false)
+      await Promise.all([loadDictionary(), loadDictionary()])
+      expect(fetch).toHaveBeenCalledTimes(2)
+      expect(dictionary).toEqual([{
+        id: 'cedict_670b_53cb', simplified: '朋友', traditional: '朋友', variants: [], pinyin: 'péngyou',
+        syllables: ['peng', 'you'], tones: [2, 5], frequency: 7, gloss: 'friend',
+        readings: [{ pinyin: 'péngyou', syllables: ['peng', 'you'], tones: [2, 5] }, { pinyin: 'péngyǒu', syllables: ['peng', 'you'], tones: [2, 3] }],
+      }])
+      expect(wordByForm.get('朋友')).toBe('cedict_670b_53cb')
+      await loadDictionary()
+      expect(fetch).toHaveBeenCalledTimes(2)
+    } finally {
+      installDictionary(saved)
+    }
   })
 })
