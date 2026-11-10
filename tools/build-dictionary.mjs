@@ -191,6 +191,9 @@ export async function main(args = process.argv.slice(2)) {
   const output = resolve(root, 'src', 'generated', 'dictionary.json')
   await mkdir(dirname(output), { recursive: true })
   await writeFile(output, `${JSON.stringify(result)}\n`)
+  // The app loads this compact copy at runtime; the full file stays the editorial/tooling source.
+  const { compactDictionary } = await import('./build-runtime-dictionary.mjs')
+  await writeFile(resolve(root, 'src', 'generated', 'dictionary.runtime.json'), `${JSON.stringify(compactDictionary(result))}\n`)
   const notice = resolve(root, 'public', 'licenses', 'CC-CEDICT-NOTICE.txt')
   await mkdir(dirname(notice), { recursive: true })
   await writeFile(notice, attributionNotice(result.metadata))

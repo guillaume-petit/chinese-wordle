@@ -16,7 +16,8 @@
     "content:curated": "node tools\\build-curated.mjs",
     "content:tocfl": "node tools\\import-tocfl.mjs",
     "content:schedule": "node tools/build-schedule.mjs",
-    "test:importer": "node --test tools\\build-dictionary.test.mjs tools\\build-curated.test.mjs tools\\import-tocfl.test.mjs tools/build-schedule.test.mjs",
+    "content:runtime": "node tools/build-runtime-dictionary.mjs",
+    "test:importer": "node --test tools\\build-dictionary.test.mjs tools\\build-curated.test.mjs tools\\import-tocfl.test.mjs tools/build-schedule.test.mjs tools/build-runtime-dictionary.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

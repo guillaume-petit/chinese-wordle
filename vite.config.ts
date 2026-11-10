@@ -21,8 +21,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,webmanifest,txt}'],
-        maximumFileSizeToCacheInBytes: 24 * 1024 * 1024,
+        // The dictionary is a separate hashed JSON asset (~3.6 MB), precached for offline play.
+        globPatterns: ['**/*.{js,css,html,svg,webmanifest,txt,json}'],
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
       },
     }),
   ],

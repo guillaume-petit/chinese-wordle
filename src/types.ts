@@ -17,7 +17,6 @@ export interface DictionaryEntry extends Reading {
   readings: Reading[]
   frequency: number | null
   gloss: string
-  glosses: string[]
 }
 
 export interface Word extends Reading {

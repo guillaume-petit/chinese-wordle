@@ -29,7 +29,7 @@ npm run content:build -- --source content\cedict-source.txt.gz
 npm run test:importer
 ```
 
-The generated `src\generated\dictionary.json` is bundled in production; ordinary builds need neither the source archive nor network access. Never edit generated entries by hand. The importer supports a separately licensed frequency overlay via `--frequency`; CC-CEDICT itself has no frequencies, so ranks otherwise remain unknown and ties sort deterministically by pinyin/form, never answer order.
+The importer writes the full `src\generated\dictionary.json` (used by content tools and tests) and a compact `src\generated\dictionary.runtime.json` (about 3.6 MB raw / 1.4 MB gzip instead of 20 MB / 3.3 MB). The app does not bundle either into its JavaScript: it fetches the compact file as a separate hashed asset at startup, behind a short loading screen, and the service worker precaches it for offline play. Both files are committed, so ordinary builds need neither the source archive nor network access; `npm run content:runtime` regenerates the compact file alone. Never edit generated entries by hand. The importer supports a separately licensed frequency overlay via `--frequency`; CC-CEDICT itself has no frequencies, so ranks otherwise remain unknown and ties sort deterministically by pinyin/form, never answer order.
 
 CC-CEDICT contributors provide the dictionary under **CC BY-SA 4.0**. The derived dictionary (including normalization and merged forms/readings) carries that same license. See `THIRD_PARTY_NOTICES.md`, offline notices in `public\licenses`. This dictionary license is separate from unrelated application code and learning content.
 
@@ -93,4 +93,4 @@ Dictionary-derived pinyin/gloss/definition cells retain CC-CEDICT's CC BY-SA 4.0
 
 TOCFL levels are stored and displayed when supplied. The Monday-Saturday level schedule is still planned, not activated by spreadsheet editing alone.
 
-This milestone uses browser local storage and an indexed in-thread dictionary rather than Dexie/IndexedDB and a Web Worker. The dictionary is eagerly bundled; lazy index/gloss loading is deferred. The daily schedule is generated, not hand-reviewed, and does not yet follow the weekday level progression. Audio, real ads, Android/Capacitor packaging, analytics, and server-hosted content updates are not configured. Review curated learning content and measure mobile search latency before public release.
+This milestone uses browser local storage and an indexed in-thread dictionary rather than Dexie/IndexedDB and a Web Worker. The compact dictionary is loaded whole at startup; splitting glosses into a lazily loaded file is deferred. The daily schedule is generated, not hand-reviewed, and does not yet follow the weekday level progression. Audio, real ads, Android/Capacitor packaging, analytics, and server-hosted content updates are not configured. Review curated learning content and measure mobile search latency before public release.
