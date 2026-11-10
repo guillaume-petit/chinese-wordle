@@ -1,5 +1,6 @@
 import { dictionaryById, wordByForm } from './dictionary'
-import type { Word } from './types'
+import { shanghaiDate } from './game'
+import type { DailySchedule, Word } from './types'
 
 // Synthetic learning content is used only by tests, never by the app bundle.
 export const words: Word[] = ['朋友', '天气', '学校', '今天', '你好', '喜欢'].map((form) => {
@@ -19,3 +20,5 @@ export const words: Word[] = ['朋友', '天气', '学校', '今天', '你好', 
 })
 export const wordById = new Map(words.map((word) => [word.id, word]))
 export const answerPool = [...words]
+// Today's answer is fixed so tests that guess 朋友 never win by accident on some dates.
+export const schedule: DailySchedule = { start: shanghaiDate(), answerIds: [wordByForm.get('喜欢')!] }

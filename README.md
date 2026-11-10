@@ -65,6 +65,17 @@ Errors identify the offending row/field; fix the CSV and rerun. No network or CC
 
 An empty or candidate-only spreadsheet builds successfully but displays **No approved words yet** instead of starting a puzzle. Old MVP saves are not migrated into the new vocabulary.
 
+## Daily schedule
+
+`content\daily-schedule.csv` fixes which approved word is the answer on each date (`date,id`, one row per consecutive day). It is committed and append-only: approving or adding words never changes an already scheduled date, so all players get the same word. Extend it before it runs out (the curated build warns when fewer than 60 days remain):
+
+```powershell
+npm run content:schedule
+npm run content:curated
+```
+
+By default this covers today + 365 days (Asia/Shanghai); use `-- --days 730` for more. Every approved word is used once, in a seeded pseudo-random order, before any word repeats; newly approved words are scheduled first. Dates up to today are never changed. If you exclude a word that is scheduled for a future date, rerun `npm run content:schedule` to replace it; a word on a past or current date must stay approved (or be replaced by hand). Dates outside the schedule fall back to a date-based pick that changes between content releases, so never let the schedule run out.
+
 ## Import the supplied TOCFL reference
 
 `content\tocfl-202307.csv` contains the supplied reference with `ID,Traditional,Simplified,Pinyin,POS,Variants` columns. The importer keeps explicit two-character pairs and variants, matches both scripts to the same CC-CEDICT entry, and writes candidates or excluded rows with reasons:
@@ -82,4 +93,4 @@ Dictionary-derived pinyin/gloss/definition cells retain CC-CEDICT's CC BY-SA 4.0
 
 TOCFL levels are stored and displayed when supplied. The Monday-Saturday level schedule is still planned, not activated by spreadsheet editing alone.
 
-This milestone uses browser local storage and an indexed in-thread dictionary rather than Dexie/IndexedDB and a Web Worker. The dictionary is eagerly bundled; lazy index/gloss loading is deferred. The daily schedule remains a starter rotation rather than a reviewed 90-day schedule. Audio, real ads, Android/Capacitor packaging, analytics, and server-hosted content updates are not configured. Review curated learning content and measure mobile search latency before public release.
+This milestone uses browser local storage and an indexed in-thread dictionary rather than Dexie/IndexedDB and a Web Worker. The dictionary is eagerly bundled; lazy index/gloss loading is deferred. The daily schedule is generated, not hand-reviewed, and does not yet follow the weekday level progression. Audio, real ads, Android/Capacitor packaging, analytics, and server-hosted content updates are not configured. Review curated learning content and measure mobile search latency before public release.

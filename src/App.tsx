@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
-import { answerPool, wordById } from './data'
+import { answerPool, schedule, wordById } from './data'
 import { dictionary, dictionaryById } from './dictionary'
 import { preparePinyinIndex } from './pinyin'
 import {
-  addHint, displayForm, formatChineseDate, isAssisted, isHintAvailable, makeDailyGame, makePracticeGame, nextShanghaiMidnight,
-  normalizePinyin, resolveGuess, scoreGuess, scorePinyinParts, shanghaiDate, shareText, suggestions, vocabularyLevelForDate,
+  addHint, dailyAnswerId as scheduledAnswerId, displayForm, formatChineseDate, isAssisted, isHintAvailable, makeDailyGame, makePracticeGame, nextShanghaiMidnight,
+  normalizePinyin, resolveGuess, scoreGuess, scorePinyinParts, shanghaiDate, shareText, suggestions, upcomingAnswerIds, vocabularyLevelForDate,
 } from './game'
 import { defaultSettings, loadData, replaceGame, saveData } from './storage'
 import type { Game, HintType, PersistedData, PinyinPartFeedback as PinyinPart, Reading, Script, Settings, TileState, Word } from './types'
 
 type Screen = 'game' | 'history' | 'stats' | 'settings'
 
-function dailyAnswerId(date: string): string {
-  const day = Math.floor(Date.parse(`${date}T00:00:00Z`) / 86_400_000)
-  return answerPool[((day % answerPool.length) + answerPool.length) % answerPool.length].id
-}
+// Only called after App has checked that the approved pool is nonempty.
+const dailyAnswerId = (date: string): string => scheduledAnswerId(date, schedule, answerPool)!
+const PRACTICE_SPOILER_DAYS = 30
 
 function currentDaily(data: PersistedData): Game {
   const date = shanghaiDate()
@@ -242,7 +241,11 @@ function PuzzleApp() {
   }
 
   function startPractice(reviewSaved = false) {
-    const eligible = answerPool.filter((word) => word.id !== dailyAnswerId(shanghaiDate()))
+    const today = dailyAnswerId(shanghaiDate())
+    const upcoming = upcomingAnswerIds(shanghaiDate(), PRACTICE_SPOILER_DAYS, schedule, answerPool)
+    const unspoiled = answerPool.filter((word) => !upcoming.has(word.id))
+    // Small pools may all be scheduled soon; then only today's answer is withheld.
+    const eligible = unspoiled.length ? unspoiled : answerPool.filter((word) => word.id !== today)
     if (!eligible.length) {
       setMessage('No other approved word is available for practice. Add another approved word to the curated list.')
       return

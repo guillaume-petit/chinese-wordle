@@ -80,3 +80,9 @@ export interface PersistedData {
   settings: Settings
   onboardingDone: boolean
 }
+
+/** Fixed date-to-answer schedule; `answerIds[i]` is the answer for `start + i` days. */
+export interface DailySchedule {
+  start: string | null
+  answerIds: string[]
+}

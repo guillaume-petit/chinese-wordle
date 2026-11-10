@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { answerPool, words } from './curated-test-fixtures'
 import { dictionaryById } from './dictionary'
-import { addHint, formatChineseDate, isAssisted, isHintAvailable, makeDailyGame, normalizePinyin, scoreGuess, scorePinyinParts, shanghaiDate, shareText, suggestions, vocabularyLevelForDate } from './game'
+import { addHint, dailyAnswerId, formatChineseDate, isAssisted, isHintAvailable, makeDailyGame, normalizePinyin, scoreGuess, scorePinyinParts, shanghaiDate, shareText, suggestions, upcomingAnswerIds, vocabularyLevelForDate } from './game'
 
 describe('game helpers', () => {
   it('ignores legacy topic usage but preserves sentence and pronunciation assistance', () => {
@@ -111,5 +111,26 @@ describe('game helpers', () => {
     expect(vocabularyLevelForDate('2026-10-16')).toBe('Advanced')
     expect(vocabularyLevelForDate('2026-10-17')).toBe('Advanced')
     expect(vocabularyLevelForDate('2026-10-18')).toBeNull()
+  })
+
+  it('reads the daily answer from the schedule, unaffected by later pool growth', () => {
+    const [a, b, c] = answerPool
+    const schedule = { start: '2026-11-10', answerIds: [b.id, c.id] }
+    expect(dailyAnswerId('2026-11-10', schedule, answerPool)).toBe(b.id)
+    expect(dailyAnswerId('2026-11-11', schedule, answerPool)).toBe(c.id)
+    expect(dailyAnswerId('2026-11-11', schedule, [...answerPool, ...words.slice(0, 1)])).toBe(c.id)
+    expect(dailyAnswerId('2026-11-11', schedule, [c, a])).toBe(c.id)
+    expect(upcomingAnswerIds('2026-11-10', 2, schedule, answerPool)).toEqual(new Set([b.id, c.id]))
+  })
+
+  it('falls back deterministically outside the schedule or for removed words', () => {
+    const schedule = { start: '2026-11-10', answerIds: [answerPool[0].id] }
+    for (const date of ['2026-11-09', '2026-11-11', '2030-01-01']) {
+      const id = dailyAnswerId(date, schedule, answerPool)
+      expect(answerPool.map((word) => word.id)).toContain(id)
+      expect(dailyAnswerId(date, schedule, answerPool)).toBe(id)
+    }
+    expect(dailyAnswerId('2026-11-10', schedule, answerPool.slice(1))).not.toBe(answerPool[0].id)
+    expect(dailyAnswerId('2026-11-10', { start: null, answerIds: [] }, [])).toBeNull()
   })
 })
