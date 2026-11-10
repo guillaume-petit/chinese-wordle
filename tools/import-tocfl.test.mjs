@@ -200,7 +200,10 @@ test('CLI permits header-only first import, protects reviews and leaves both out
   }
 })
 
-test('complete offline source snapshot regenerates exact measured CSV, report and counts', async () => {
+// Columns the importer owns; review status, exclusions and learning content are edited afterwards.
+const IMPORTED_COLUMNS = ['id', 'simplified', 'traditional', 'tocflLevel', 'sourceReference']
+
+test('complete offline source snapshot regenerates the exact report, counts and imported CSV identity', async () => {
   const [input, dictionaryText, currentCsv, currentReport] = await Promise.all([
     readFile(new URL('../content/tocfl-202307.csv', import.meta.url), 'utf8'),
     readFile(new URL('../src/generated/dictionary.json', import.meta.url), 'utf8'),
@@ -208,7 +211,14 @@ test('complete offline source snapshot regenerates exact measured CSV, report an
     readFile(new URL('../content/tocfl-import-report.json', import.meta.url), 'utf8'),
   ])
   const result = importTocfl(input, { dictionary: JSON.parse(dictionaryText) })
-  assert.equal(result.csv, currentCsv)
+  const imported = parseCsv(result.csv).map(({ value }) => value)
+  const current = parseCsv(currentCsv).map(({ value }) => value)
+  assert.equal(current.length, imported.length, 'rows must not be added or removed after import')
+  imported.forEach((row, index) => {
+    const pick = (value) => Object.fromEntries(IMPORTED_COLUMNS.map((column) => [column, value[column]]))
+    assert.deepEqual(pick(current[index]), pick(row), `CSV row ${index + 2}`)
+    if (row.reviewStatus === 'excluded') assert.equal(current[index].reviewStatus, 'excluded', `CSV row ${index + 2} was excluded on import`)
+  })
   assert.deepEqual(result.report, JSON.parse(currentReport))
   const { perLevel, ...counts } = result.report.counts
   assert.deepEqual(counts, {
