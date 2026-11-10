@@ -31,8 +31,8 @@ describe('daily puzzle flow', () => {
     vi.stubGlobal('fetch', fetch)
     try {
       render(<App />)
-      expect(screen.getByRole('status')).toHaveTextContent('Loading dictionary')
-      expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't load the dictionary")
+      expect(screen.getByRole('status')).toHaveTextContent('Loading words')
+      expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't load the game data")
       fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
       expect(await screen.findByRole('button', { name: 'Start playing' })).toBeInTheDocument()
       expect(fetch).toHaveBeenCalledTimes(2)

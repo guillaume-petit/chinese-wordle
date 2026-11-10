@@ -21,9 +21,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // The dictionary is a separate hashed JSON asset (~3.6 MB), precached for offline play.
+        // The dictionary (~3.6 MB) and curated words (~4.5 MB) are separate hashed JSON assets,
+        // precached for offline play; the limit leaves room for curated content to grow.
         globPatterns: ['**/*.{js,css,html,svg,webmanifest,txt,json}'],
-        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
       },
     }),
   ],
