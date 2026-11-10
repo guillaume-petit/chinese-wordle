@@ -220,14 +220,21 @@ test('CLI ignores old output, regenerates deterministically and leaves output un
   }
 })
 
-test('production reference CSV has nineteen columns and no approved answer content', async () => {
-  const [source, productionDictionary] = await Promise.all([
+// Editorial counts change as words are reviewed, so check consistency rather than a snapshot.
+test('production CSV has nineteen columns, builds cleanly and matches the committed output', async () => {
+  const [source, productionDictionary, schedule, committed] = await Promise.all([
     readFile(new URL('../content/curated-words.csv', import.meta.url), 'utf8'),
     readFile(new URL('../src/generated/dictionary.json', import.meta.url), 'utf8').then(JSON.parse),
+    readFile(new URL('../content/daily-schedule.csv', import.meta.url), 'utf8'),
+    readFile(new URL('../src/generated/curated.json', import.meta.url), 'utf8').then(JSON.parse),
   ])
   assert.equal(source.split(/\r?\n/u)[0], columns.join(','))
-  const result = buildCurated(source, { dictionary: productionDictionary })
-  assert.deepEqual(result.counts, { approved: 0, candidate: 5731, excluded: 55, wordCount: 0, answerCount: 0 })
-  assert.deepEqual(result.artifact.words, [])
-  assert.deepEqual(result.artifact.answerIds, [])
+  const result = buildCurated(source, { dictionary: productionDictionary, schedule })
+  const { approved, candidate, excluded, wordCount, answerCount } = result.counts
+  assert.equal(approved + candidate + excluded, parseCsv(source).length)
+  assert.ok(approved > 0, 'production content needs approved words')
+  assert.equal(wordCount, approved)
+  assert.equal(answerCount, approved)
+  assert.deepEqual(result.warnings, [])
+  assert.deepEqual(committed, result.artifact, 'src/generated/curated.json is stale; run npm run content:curated')
 })
